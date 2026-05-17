@@ -1,8 +1,8 @@
 import { useState, useRef } from 'react'
-import { ChevronLeft, Plus } from 'lucide-react'
+import { ChevronLeft, Trash2 } from 'lucide-react'
 import { genId } from '../../constants'
 
-export default function TopicDetail({ goBack, topicId, topics, setTopics }) {
+export default function TopicDetail({ goBack, topicId, topics, setTopics, setPosts, setTodayPicks }) {
   const [input, setInput] = useState('')
   const inputRef = useRef(null)
 
@@ -13,6 +13,21 @@ export default function TopicDetail({ goBack, topicId, topics, setTopics }) {
       <p>대주제를 찾을 수 없어요.</p>
     </div>
   )
+
+  const deleteTopic = () => {
+    if (!window.confirm(`"${topic.title}" 대주제를 삭제할까요?\n관련 게시글도 모두 삭제돼요.`)) return
+    setTopics(prev => prev.filter(t => t.id !== topicId))
+    setPosts(prev => prev.filter(p => p.topicId !== topicId))
+    setTodayPicks(prev => {
+      const next = { ...prev }
+      const subtaskIds = new Set(topic.subtasks.map(s => s.id))
+      Object.keys(next).forEach(date => {
+        next[date] = next[date].filter(id => !subtaskIds.has(id))
+      })
+      return next
+    })
+    goBack()
+  }
 
   const addSubtask = () => {
     if (!input.trim()) return
@@ -34,7 +49,6 @@ export default function TopicDetail({ goBack, topicId, topics, setTopics }) {
   }
 
   const longTimers = useRef({})
-
   const startLongPress = (sid) => {
     longTimers.current[sid] = setTimeout(() => {
       if (window.confirm('이 소주제를 삭제할까요?')) {
@@ -55,14 +69,20 @@ export default function TopicDetail({ goBack, topicId, topics, setTopics }) {
     <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', backgroundColor: '#F5F2F3' }}>
       {/* 헤더 */}
       <div style={{ padding: '16px 20px', backgroundColor: '#F5F2F3' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
-          <button onClick={goBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-            <ChevronLeft size={24} color="#111" />
-          </button>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button onClick={goBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+              <ChevronLeft size={24} color="#111" />
+            </button>
             <div style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: topic.color }} />
             <span style={{ fontWeight: 700, fontSize: 18 }}>{topic.title}</span>
           </div>
+          <button
+            onClick={deleteTopic}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8 }}
+          >
+            <Trash2 size={18} color="#FF6B6B" />
+          </button>
         </div>
         <div style={{ paddingLeft: 44, fontSize: 12, color: '#aaa' }}>
           {topic.startDate} ~ {topic.endDate}
