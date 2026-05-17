@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react'
 import { genId, toDateStr, todayStr, COLOR_PALETTES, FAB } from '../../constants'
+import { Trash2 } from 'lucide-react'
 
 function getMonthWeeks(year, month) {
   const first = new Date(year, month, 1)
@@ -46,7 +47,7 @@ function getBarsForWeek(week, topics) {
   return bars
 }
 
-export default function Calendar({ navigate, topics, setTopics }) {
+export default function Calendar({ navigate, topics, setTopics, setPosts, setTodayPicks }) {
   const now = new Date()
   const [year, setYear] = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth())
@@ -66,6 +67,20 @@ export default function Calendar({ navigate, topics, setTopics }) {
   const nextMonth = () => month === 11 ? (setYear(y => y + 1), setMonth(0)) : setMonth(m => m + 1)
 
   const selectedTopics = selected ? topics.filter(t => t.startDate <= selected && t.endDate >= selected) : []
+
+  const deleteTopic = (t) => {
+    if (!window.confirm(`"${t.title}" 대주제를 삭제할까요?\n관련 게시글도 모두 삭제돼요.`)) return
+    setTopics(prev => prev.filter(tp => tp.id !== t.id))
+    setPosts(prev => prev.filter(p => p.topicId !== t.id))
+    setTodayPicks(prev => {
+      const subtaskIds = new Set(t.subtasks.map(s => s.id))
+      const next = { ...prev }
+      Object.keys(next).forEach(date => {
+        next[date] = next[date].filter(id => !subtaskIds.has(id))
+      })
+      return next
+    })
+  }
 
   const addTopic = () => {
     if (!form.title.trim()) return
@@ -203,15 +218,37 @@ export default function Calendar({ navigate, topics, setTopics }) {
                   return (
                     <div
                       key={t.id}
-                      onClick={() => { setSelected(null); navigate('TopicDetail', { topicId: t.id }) }}
                       style={{
                         backgroundColor: t.colorLight,
                         borderRadius: 16,
                         padding: 16,
-                        cursor: 'pointer',
+                        position: 'relative',
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); deleteTopic(t) }}
+                        style={{
+                          position: 'absolute',
+                          top: 12,
+                          right: 12,
+                          background: 'rgba(0,0,0,0.08)',
+                          border: 'none',
+                          borderRadius: '50%',
+                          width: 28,
+                          height: 28,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <Trash2 size={13} color="#555" />
+                      </button>
+                      <div
+                        onClick={() => { setSelected(null); navigate('TopicDetail', { topicId: t.id }) }}
+                        style={{ cursor: 'pointer' }}
+                      >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, paddingRight: 32 }}>
                         <div style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: t.color, flexShrink: 0 }} />
                         <span style={{ fontWeight: 600, fontSize: 15 }}>{t.title}</span>
                       </div>
@@ -226,6 +263,7 @@ export default function Calendar({ navigate, topics, setTopics }) {
                           <span style={{ fontSize: 11, color: '#666' }}>{done} / {t.subtasks.length}</span>
                         </>
                       )}
+                      </div>
                     </div>
                   )
                 })}
