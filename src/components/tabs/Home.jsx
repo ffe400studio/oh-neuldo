@@ -7,6 +7,7 @@ export default function Home({
   resolutions, activeResolutionId,
   topics, setTopics,
   todayPicks,
+  profile,
 }) {
   const today = todayStr()
 
@@ -40,10 +41,25 @@ export default function Home({
 
   return (
     <div style={{ padding: '0 16px 20px' }}>
-      {/* 앱 타이틀 */}
-      <div style={{ padding: '20px 4px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: '#aaa', letterSpacing: '0.08em' }}>Oh-neuldo</span>
-        <span style={{ fontSize: 13, color: '#aaa' }}>{formatDate(today)}</span>
+      {/* 상단 헤더 */}
+      <div style={{ padding: '20px 4px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {profile?.profileImage ? (
+            <img src={profile.profileImage} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+          ) : (
+            <div style={{ width: 36, height: 36, borderRadius: '50%', backgroundColor: '#e8e8e8', flexShrink: 0 }} />
+          )}
+          <div>
+            {profile?.username ? (
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#111' }}>
+                {profile.username}님 {profile.greeting || '오늘도 화이팅!'}
+              </div>
+            ) : (
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#aaa', letterSpacing: '0.08em' }}>Oh-neuldo</span>
+            )}
+          </div>
+        </div>
+        <span style={{ fontSize: 12, color: '#aaa' }}>{formatDate(today)}</span>
       </div>
 
       {/* 결심 배너 */}

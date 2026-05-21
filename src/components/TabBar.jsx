@@ -1,10 +1,11 @@
-import { Sun, Calendar, LayoutGrid, BookOpen } from 'lucide-react'
+import { Sun, Calendar, LayoutGrid, BookOpen, Settings } from 'lucide-react'
 
 const TABS = [
   { id: 'home', label: '홈', Icon: Sun },
   { id: 'calendar', label: '캘린더', Icon: Calendar },
   { id: 'board', label: '게시판', Icon: LayoutGrid },
   { id: 'diary', label: '일기', Icon: BookOpen },
+  { id: 'settings', label: '설정', Icon: Settings },
 ]
 
 export default function TabBar({ activeTab, setActiveTab }) {
