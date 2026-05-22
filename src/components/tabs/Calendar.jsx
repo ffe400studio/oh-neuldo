@@ -106,6 +106,8 @@ export default function Calendar({ navigate, topics, setTopics, saveTopic, delet
 
   useEffect(() => { localStorage.setItem('events', JSON.stringify(events)) }, [events])
 
+  const [selected, setSelected] = useState(null)
+
   const longPressTimer = useRef(null)
   const didLongPress = useRef(false)
   const eventLongPressTimer = useRef(null)
@@ -242,6 +244,13 @@ export default function Calendar({ navigate, topics, setTopics, saveTopic, delet
 
   const handleDayPressEnd = () => clearTimeout(longPressTimer.current)
 
+  const handleDayClick = (ds) => {
+    if (didLongPress.current) { didLongPress.current = false; return }
+    const hasHoliday = !!HOLIDAYS[ds]
+    const hasEvents = events.some(e => e.date === ds)
+    if (hasHoliday || hasEvents) setSelected(ds)
+  }
+
   const saveEvent = () => {
     if (!eventForm.title.trim()) return
     if (eventModal.mode === 'add') {
@@ -297,12 +306,13 @@ export default function Calendar({ navigate, topics, setTopics, saveTopic, delet
                   return (
                     <div
                       key={di}
+                      onClick={() => handleDayClick(day.ds)}
                       onMouseDown={() => handleDayPressStart(day.ds)}
                       onMouseUp={handleDayPressEnd}
                       onMouseLeave={handleDayPressEnd}
                       onTouchStart={() => handleDayPressStart(day.ds)}
                       onTouchEnd={handleDayPressEnd}
-                      style={{ textAlign: 'center', padding: '4px 0', userSelect: 'none' }}
+                      style={{ textAlign: 'center', padding: '4px 0', userSelect: 'none', cursor: 'pointer' }}
                     >
                       <span style={{
                         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -438,6 +448,44 @@ export default function Calendar({ navigate, topics, setTopics, saveTopic, delet
           </div>
         )}
       </div>
+
+      {/* ── 공휴일/개인 일정 바텀시트 ── */}
+      {selected && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 60 }}>
+          <div onClick={() => setSelected(null)} style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.35)' }} />
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, margin: '0 auto', maxWidth: 390, backgroundColor: '#fff', borderRadius: '20px 20px 0 0', padding: '20px 20px 40px', maxHeight: '60dvh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <span style={{ fontWeight: 700, fontSize: 16 }}>{selected}</span>
+              <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
+            </div>
+            {HOLIDAYS[selected] && (
+              <div style={{ fontSize: 13, color: '#FF4444', fontWeight: 600, marginBottom: 16 }}>{HOLIDAYS[selected]}</div>
+            )}
+            {events.filter(e => e.date === selected).length > 0 && (
+              <div style={{ marginTop: HOLIDAYS[selected] ? 0 : 12 }}>
+                <div style={{ fontSize: 12, color: '#aaa', fontWeight: 600, marginBottom: 8 }}>개인 일정</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {events.filter(e => e.date === selected).map(e => (
+                    <div
+                      key={e.id}
+                      onClick={() => { const colorIdx = EVENT_COLORS.indexOf(e.color); setEventForm({ title: e.title, date: e.date, colorIdx: colorIdx >= 0 ? colorIdx : 0 }); setEventModal({ mode: 'edit', id: e.id }); setSelected(null) }}
+                      onMouseDown={() => { eventLongPressTimer.current = setTimeout(() => { if (window.confirm(`"${e.title}" 일정을 삭제할까요?`)) { setEvents(prev => prev.filter(ev => ev.id !== e.id)) } }, 600) }}
+                      onMouseUp={() => clearTimeout(eventLongPressTimer.current)}
+                      onMouseLeave={() => clearTimeout(eventLongPressTimer.current)}
+                      onTouchStart={() => { eventLongPressTimer.current = setTimeout(() => { if (window.confirm(`"${e.title}" 일정을 삭제할까요?`)) { setEvents(prev => prev.filter(ev => ev.id !== e.id)) } }, 600) }}
+                      onTouchEnd={() => clearTimeout(eventLongPressTimer.current)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', backgroundColor: '#f8f8f8', borderRadius: 12, cursor: 'pointer', userSelect: 'none' }}
+                    >
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: e.color, flexShrink: 0 }} />
+                      <span style={{ fontSize: 14, fontWeight: 500 }}>{e.title}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* FAB */}
       <button onClick={openAddTopic} style={{ ...FAB, position: 'fixed', bottom: 80, right: fabRight, zIndex: 20 }}>
