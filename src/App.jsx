@@ -31,6 +31,10 @@ export default function App() {
   const [todayPicks, setTodayPicksState] = useState({})
   const [lastVisitDate, setLastVisitDateState] = useState('')
   const [profile, setProfileState] = useState({ username: '', greeting: '', profileImage: null })
+  const [appSettings, setAppSettingsState] = useState(() => {
+    try { return { showPhoto: true, showResolution: true, ...JSON.parse(localStorage.getItem('appSettings') || '{}') } }
+    catch { return { showPhoto: true, showResolution: true } }
+  })
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setSession(session))
@@ -62,7 +66,7 @@ export default function App() {
     ])
 
     if (res) setResolutionsState(res)
-    if (top) setTopicsState(top.map(t => ({ ...t, colorLight: t.color_light, startDate: t.start_date, endDate: t.end_date })))
+    if (top) setTopicsState(top.map(t => ({ ...t, colorLight: t.color_light, startDate: t.start_date, endDate: t.end_date, scheduleType: t.schedule_type || 'fixed' })))
     if (pos) setPostsState(pos.map(p => ({ ...p, topicId: p.topic_id, createdAt: p.created_at })))
     if (dia) setDiariesState(dia.map(d => ({ ...d, createdAt: d.created_at })))
 
@@ -103,6 +107,12 @@ export default function App() {
     await upsertSettings({ today_picks: next })
   }
 
+  const setAppSettings = (patch) => {
+    const next = { ...appSettings, ...patch }
+    setAppSettingsState(next)
+    localStorage.setItem('appSettings', JSON.stringify(next))
+  }
+
   const setProfile = (p) => setProfileState(p)
   const saveProfile = async (p) => {
     await upsertSettings({ username: p.username, greeting: p.greeting, profile_image: p.profileImage })
@@ -125,7 +135,7 @@ export default function App() {
   const deleteResolution = async (id) => { await supabase.from('resolutions').delete().eq('id', id) }
 
   const saveTopic = async (t, isNew) => {
-    const row = { id: t.id, user_id: uid(), title: t.title, color: t.color, color_light: t.colorLight, start_date: t.startDate, end_date: t.endDate, subtasks: t.subtasks }
+    const row = { id: t.id, user_id: uid(), title: t.title, color: t.color, color_light: t.colorLight, start_date: t.startDate, end_date: t.endDate, subtasks: t.subtasks, schedule_type: t.scheduleType || 'fixed' }
     if (isNew) await supabase.from('topics').insert(row)
     else await supabase.from('topics').update(row).eq('id', t.id)
   }
@@ -157,6 +167,7 @@ export default function App() {
     diaries, setDiaries, saveDiary, deleteDiary,
     todayPicks, setTodayPicks,
     profile, setProfile, saveProfile,
+    appSettings, setAppSettings,
   }
 
   const renderScreen = (screen) => {
@@ -180,7 +191,7 @@ export default function App() {
       case 'calendar': return <Calendar {...shared} />
       case 'board': return <Board {...shared} />
       case 'diary': return <Diary {...shared} />
-      case 'settings': return <Settings profile={profile} setProfile={setProfile} saveProfile={saveProfile} />
+      case 'settings': return <Settings profile={profile} setProfile={setProfile} saveProfile={saveProfile} appSettings={appSettings} setAppSettings={setAppSettings} />
       default: return null
     }
   }
