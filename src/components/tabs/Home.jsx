@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect, useRef } from 'react'
 import { ChevronRight, Camera, Plus, X, Pencil } from 'lucide-react'
 import { todayStr, formatDate, CARD } from '../../constants'
+import { supabase } from '../../lib/supabase'
 
 export default function Home({
   navigate,
@@ -9,31 +10,28 @@ export default function Home({
   todayPicks,
   profile,
   appSettings,
+  photos, savePhotos,
 }) {
   const today = todayStr()
   const showPhoto = appSettings?.showPhoto !== false
   const showResolution = appSettings?.showResolution !== false
 
   // ── 사진 슬라이드쇼 ───────────────────────────────────────
-  const [photos, setPhotos] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('homePhotos') || '[]') } catch { return [] }
-  })
   const [photoIdx, setPhotoIdx] = useState(0)
   const [showPhotoModal, setShowPhotoModal] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const photoFileRef = useRef(null)
   const touchStartX = useRef(null)
 
-  useEffect(() => { localStorage.setItem('homePhotos', JSON.stringify(photos)) }, [photos])
-
   useEffect(() => {
-    if (photos.length <= 1) return
+    if ((photos || []).length <= 1) return
     const t = setInterval(() => setPhotoIdx(i => (i + 1) % photos.length), 4000)
     return () => clearInterval(t)
-  }, [photos.length])
+  }, [(photos || []).length])
 
   useEffect(() => {
-    if (photoIdx >= photos.length && photos.length > 0) setPhotoIdx(photos.length - 1)
-  }, [photos.length])
+    if (photoIdx >= (photos || []).length && (photos || []).length > 0) setPhotoIdx(photos.length - 1)
+  }, [(photos || []).length])
 
   const handlePhotoTouchStart = (e) => { touchStartX.current = e.touches[0].clientX }
   const handlePhotoTouchEnd = (e) => {
@@ -49,27 +47,39 @@ export default function Home({
   const addPhoto = (e) => {
     const file = e.target.files[0]
     if (!file) return
+    e.target.value = ''
     const reader = new FileReader()
-    reader.onloadend = () => {
+    reader.onloadend = async () => {
       const img = new Image()
-      img.onload = () => {
-        const MAX = 800
+      img.onload = async () => {
+        const MAX = 1200
         const scale = Math.min(1, MAX / Math.max(img.width, img.height))
         const canvas = document.createElement('canvas')
         canvas.width = Math.round(img.width * scale)
         canvas.height = Math.round(img.height * scale)
         canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
-        const compressed = canvas.toDataURL('image/jpeg', 0.7)
-        setPhotos(prev => [...prev, compressed].slice(0, 4))
+        canvas.toBlob(async (blob) => {
+          setUploading(true)
+          const uid = (await supabase.auth.getUser()).data.user.id
+          const filename = `${uid}/${Date.now()}.jpg`
+          const { error } = await supabase.storage.from('photos').upload(filename, blob, { contentType: 'image/jpeg' })
+          if (!error) {
+            const { data: { publicUrl } } = supabase.storage.from('photos').getPublicUrl(filename)
+            await savePhotos([...(photos || []), publicUrl].slice(0, 4))
+          }
+          setUploading(false)
+        }, 'image/jpeg', 0.8)
       }
       img.src = reader.result
     }
     reader.readAsDataURL(file)
-    e.target.value = ''
   }
 
-  const removePhoto = (idx) => {
-    setPhotos(prev => prev.filter((_, i) => i !== idx))
+  const removePhoto = async (idx) => {
+    const url = photos[idx]
+    const path = url.split('/photos/')[1]
+    if (path) await supabase.storage.from('photos').remove([path])
+    await savePhotos(photos.filter((_, i) => i !== idx))
   }
 
   // ── 오늘의 할일 ──────────────────────────────────────────
@@ -144,9 +154,9 @@ export default function Home({
             flexShrink: 0,
           }}
         >
-          {photos.length > 0 ? (
+          {(photos || []).length > 0 ? (
             <img
-              src={photos[photoIdx] || photos[0]}
+              src={(photos || [])[photoIdx] || photos[0]}
               alt=""
               style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
             />
@@ -158,7 +168,7 @@ export default function Home({
           )}
 
           {/* dot indicator */}
-          {photos.length > 1 && (
+          {(photos || []).length > 1 && (
             <div style={{ position: 'absolute', bottom: 36, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 5 }}>
               {photos.map((_, i) => (
                 <div key={i} style={{ width: 5, height: 5, borderRadius: '50%', backgroundColor: i === photoIdx ? '#fff' : 'rgba(255,255,255,0.5)', transition: 'background 0.2s' }} />
@@ -279,7 +289,7 @@ export default function Home({
               <button onClick={() => setShowPhotoModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-              {photos.map((src, i) => (
+              {(photos || []).map((src, i) => (
                 <div key={i} style={{ position: 'relative', aspectRatio: '1', borderRadius: 12, overflow: 'hidden' }}>
                   <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                   <button
@@ -288,12 +298,12 @@ export default function Home({
                   ><X size={12} color="#fff" /></button>
                 </div>
               ))}
-              {photos.length < 4 && (
+              {(photos || []).length < 4 && (
                 <button
-                  onClick={() => photoFileRef.current?.click()}
-                  style={{ aspectRatio: '1', borderRadius: 12, border: '1.5px dashed #ddd', backgroundColor: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                  onClick={() => !uploading && photoFileRef.current?.click()}
+                  style={{ aspectRatio: '1', borderRadius: 12, border: '1.5px dashed #ddd', backgroundColor: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: uploading ? 'default' : 'pointer' }}
                 >
-                  <Plus size={24} color="#bbb" />
+                  {uploading ? <div style={{ fontSize: 11, color: '#bbb' }}>업로드중...</div> : <Plus size={24} color="#bbb" />}
                 </button>
               )}
             </div>

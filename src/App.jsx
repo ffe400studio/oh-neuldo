@@ -31,6 +31,7 @@ export default function App() {
   const [todayPicks, setTodayPicksState] = useState({})
   const [lastVisitDate, setLastVisitDateState] = useState('')
   const [profile, setProfileState] = useState({ username: '', greeting: '', profileImage: null })
+  const [photos, setPhotosState] = useState([])
   const [appSettings, setAppSettingsState] = useState(() => {
     try { return { showPhoto: true, showResolution: true, ...JSON.parse(localStorage.getItem('appSettings') || '{}') } }
     catch { return { showPhoto: true, showResolution: true } }
@@ -79,6 +80,7 @@ export default function App() {
         greeting: settings.greeting || '',
         profileImage: settings.profile_image || null,
       })
+      setPhotosState(settings.photos || [])
     }
 
     setSyncing(false)
@@ -116,6 +118,11 @@ export default function App() {
   const setProfile = (p) => setProfileState(p)
   const saveProfile = async (p) => {
     await upsertSettings({ username: p.username, greeting: p.greeting, profile_image: p.profileImage })
+  }
+
+  const savePhotos = async (urls) => {
+    setPhotosState(urls)
+    await upsertSettings({ photos: urls })
   }
 
   const setResolutions = (updater) => setResolutionsState(updater)
@@ -168,6 +175,7 @@ export default function App() {
     todayPicks, setTodayPicks,
     profile, setProfile, saveProfile,
     appSettings, setAppSettings,
+    photos, savePhotos,
   }
 
   const renderScreen = (screen) => {
