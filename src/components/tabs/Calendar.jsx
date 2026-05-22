@@ -96,6 +96,7 @@ export default function Calendar({ navigate, topics, setTopics, saveTopic, delet
   const [expandedId, setExpandedId] = useState(null)
   const [editingSubtask, setEditingSubtask] = useState(null) // { topicId, subtaskId, text }
   const [newSubtaskText, setNewSubtaskText] = useState({})
+  const [showPastTopics, setShowPastTopics] = useState(false)
 
   // Personal events
   const [events, setEvents] = useState(() => {
@@ -359,94 +360,93 @@ export default function Calendar({ navigate, topics, setTopics, saveTopic, delet
       <div style={{ padding: '16px 16px 0' }}>
         {topics.length === 0 ? (
           <p style={{ textAlign: 'center', color: '#aaa', fontSize: 14, padding: '24px 0' }}>대주제가 없어요. 추가해보세요 ✦</p>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {topics.map(t => {
-              const isExpanded = expandedId === t.id
-              const done = t.subtasks.filter(s => s.isDone).length
-              return (
-                <div key={t.id} style={{ backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-                  {/* 카드 헤더 */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 12px 14px 16px' }}>
-                    <div style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: t.color, flexShrink: 0 }} />
-                    <span style={{ fontWeight: 600, fontSize: 15, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
-                    {t.scheduleType === 'always' ? (
-                      <span style={{ backgroundColor: '#eee', color: '#aaa', fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 8, flexShrink: 0 }}>상시</span>
-                    ) : (
-                      <span style={{ fontSize: 12, color: '#aaa', flexShrink: 0 }}>{shortDate(t.startDate)} ~ {shortDate(t.endDate)}</span>
+        ) : (() => {
+          const activeTopics = topics.filter(t => t.scheduleType === 'always' || !t.endDate || t.endDate >= today)
+          const pastTopics = topics.filter(t => t.scheduleType === 'fixed' && t.endDate && t.endDate < today)
+          const renderTopicCard = (t) => {
+            const isExpanded = expandedId === t.id
+            const done = t.subtasks.filter(s => s.isDone).length
+            return (
+              <div key={t.id} style={{ backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 12px 14px 16px' }}>
+                  <div style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: t.color, flexShrink: 0 }} />
+                  <span style={{ fontWeight: 600, fontSize: 15, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
+                  {t.scheduleType === 'always' ? (
+                    <span style={{ backgroundColor: '#eee', color: '#aaa', fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 8, flexShrink: 0 }}>상시</span>
+                  ) : (
+                    <span style={{ fontSize: 12, color: '#aaa', flexShrink: 0 }}>{shortDate(t.startDate)} ~ {shortDate(t.endDate)}</span>
+                  )}
+                  <button onClick={() => openEditTopic(t)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, flexShrink: 0 }}>
+                    <Edit2 size={14} color="#bbb" />
+                  </button>
+                  <button onClick={() => setExpandedId(isExpanded ? null : t.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+                    <ChevronDown size={16} color="#bbb" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+                  </button>
+                </div>
+                {isExpanded && (
+                  <div style={{ borderTop: '1px solid #f0f0f0', padding: '12px 16px 16px', backgroundColor: t.colorLight || '#fafafa' }}>
+                    {t.subtasks.length === 0 && (
+                      <p style={{ fontSize: 13, color: '#bbb', marginBottom: 12, textAlign: 'center' }}>소주제가 없어요</p>
                     )}
-                    <button
-                      onClick={() => openEditTopic(t)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, flexShrink: 0 }}
-                    ><Edit2 size={14} color="#bbb" /></button>
-                    <button
-                      onClick={() => setExpandedId(isExpanded ? null : t.id)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, flexShrink: 0, display: 'flex', alignItems: 'center' }}
-                    >
-                      <ChevronDown size={16} color="#bbb" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
-                    </button>
-                  </div>
-
-                  {/* 소주제 드롭다운 */}
-                  {isExpanded && (
-                    <div style={{ borderTop: '1px solid #f0f0f0', padding: '12px 16px 16px', backgroundColor: t.colorLight || '#fafafa' }}>
-                      {t.subtasks.length === 0 && (
-                        <p style={{ fontSize: 13, color: '#bbb', marginBottom: 12, textAlign: 'center' }}>소주제가 없어요</p>
-                      )}
-                      {t.subtasks.map(s => (
-                        <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                          <input
-                            type="checkbox"
-                            checked={s.isDone}
-                            onChange={() => toggleSubtask(t.id, s.id)}
-                            style={{ accentColor: t.color, width: 16, height: 16, cursor: 'pointer', flexShrink: 0 }}
-                          />
-                          {editingSubtask?.subtaskId === s.id ? (
-                            <input
-                              value={editingSubtask.text}
-                              onChange={e => setEditingSubtask(p => ({ ...p, text: e.target.value }))}
-                              onBlur={saveEditSubtask}
-                              onKeyDown={e => e.key === 'Enter' && saveEditSubtask()}
-                              autoFocus
-                              style={{ flex: 1, border: 'none', borderBottom: '1.5px solid #ccc', outline: 'none', fontSize: 14, padding: '2px 0', backgroundColor: 'transparent' }}
-                            />
-                          ) : (
-                            <span style={{ flex: 1, fontSize: 14, color: s.isDone ? '#bbb' : '#111', textDecoration: s.isDone ? 'line-through' : 'none', minWidth: 0 }}>{s.title}</span>
-                          )}
-                          <button onClick={() => setEditingSubtask({ topicId: t.id, subtaskId: s.id, text: s.title })}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, flexShrink: 0 }}>
-                            <Edit2 size={12} color="#bbb" />
-                          </button>
-                          <button onClick={() => deleteSubtask(t.id, s.id)}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, flexShrink: 0 }}>
-                            <X size={12} color="#bbb" />
-                          </button>
-                        </div>
-                      ))}
-                      {/* 소주제 추가 */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-                        <input
-                          value={newSubtaskText[t.id] || ''}
-                          onChange={e => setNewSubtaskText(p => ({ ...p, [t.id]: e.target.value }))}
-                          onKeyDown={e => e.key === 'Enter' && addSubtask(t.id)}
-                          placeholder="소주제 추가..."
-                          style={{ flex: 1, border: 'none', borderBottom: '1.5px solid #ddd', outline: 'none', fontSize: 13, padding: '4px 0', backgroundColor: 'transparent' }}
-                        />
-                        <button onClick={() => addSubtask(t.id)}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, flexShrink: 0 }}>
-                          <Plus size={16} color="#888" />
+                    {t.subtasks.map(s => (
+                      <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                        <input type="checkbox" checked={s.isDone} onChange={() => toggleSubtask(t.id, s.id)}
+                          style={{ accentColor: t.color, width: 16, height: 16, cursor: 'pointer', flexShrink: 0 }} />
+                        {editingSubtask?.subtaskId === s.id ? (
+                          <input value={editingSubtask.text} onChange={e => setEditingSubtask(p => ({ ...p, text: e.target.value }))}
+                            onBlur={saveEditSubtask} onKeyDown={e => e.key === 'Enter' && saveEditSubtask()} autoFocus
+                            style={{ flex: 1, border: 'none', borderBottom: '1.5px solid #ccc', outline: 'none', fontSize: 14, padding: '2px 0', backgroundColor: 'transparent' }} />
+                        ) : (
+                          <span style={{ flex: 1, fontSize: 14, color: s.isDone ? '#bbb' : '#111', textDecoration: s.isDone ? 'line-through' : 'none', minWidth: 0 }}>{s.title}</span>
+                        )}
+                        <button onClick={() => setEditingSubtask({ topicId: t.id, subtaskId: s.id, text: s.title })}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, flexShrink: 0 }}>
+                          <Edit2 size={12} color="#bbb" />
+                        </button>
+                        <button onClick={() => deleteSubtask(t.id, s.id)}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, flexShrink: 0 }}>
+                          <X size={12} color="#bbb" />
                         </button>
                       </div>
-                      {t.subtasks.length > 0 && (
-                        <div style={{ marginTop: 12, fontSize: 12, color: '#999' }}>{done} / {t.subtasks.length} 완료</div>
-                      )}
+                    ))}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                      <input value={newSubtaskText[t.id] || ''} onChange={e => setNewSubtaskText(p => ({ ...p, [t.id]: e.target.value }))}
+                        onKeyDown={e => e.key === 'Enter' && addSubtask(t.id)} placeholder="소주제 추가..."
+                        style={{ flex: 1, border: 'none', borderBottom: '1.5px solid #ddd', outline: 'none', fontSize: 13, padding: '4px 0', backgroundColor: 'transparent' }} />
+                      <button onClick={() => addSubtask(t.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, flexShrink: 0 }}>
+                        <Plus size={16} color="#888" />
+                      </button>
+                    </div>
+                    {t.subtasks.length > 0 && (
+                      <div style={{ marginTop: 12, fontSize: 12, color: '#999' }}>{done} / {t.subtasks.length} 완료</div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )
+          }
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {activeTopics.map(renderTopicCard)}
+              {pastTopics.length > 0 && (
+                <div style={{ marginTop: 4 }}>
+                  <button
+                    onClick={() => setShowPastTopics(p => !p)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px 2px', display: 'flex', alignItems: 'center', gap: 4 }}
+                  >
+                    <span style={{ fontSize: 12, color: '#bbb' }}>지난 목록 ({pastTopics.length})</span>
+                    <ChevronDown size={13} color="#bbb" style={{ transform: showPastTopics ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+                  </button>
+                  {showPastTopics && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, opacity: 0.6 }}>
+                      {pastTopics.map(renderTopicCard)}
                     </div>
                   )}
                 </div>
-              )
-            })}
-          </div>
-        )}
+              )}
+            </div>
+          )
+        })()}
       </div>
 
       {/* ── 공휴일/개인 일정 바텀시트 ── */}
