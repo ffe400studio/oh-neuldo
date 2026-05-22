@@ -348,7 +348,7 @@ export default function Calendar({ navigate, topics, setTopics, saveTopic, delet
       {/* 대주제 추가 모달 */}
       {showAdd && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 60, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end' }}>
-          <div style={{ width: '100%', maxWidth: 390, margin: '0 auto', backgroundColor: '#fff', borderRadius: '20px 20px 0 0', padding: '24px 20px 40px' }}>
+          <div style={{ width: '100%', maxWidth: 390, margin: '0 auto', backgroundColor: '#fff', borderRadius: '20px 20px 0 0', padding: '24px 20px 40px', maxHeight: '90dvh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <span style={{ fontWeight: 700, fontSize: 18 }}>대주제 추가</span>
               <button onClick={() => setShowAdd(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
@@ -358,12 +358,12 @@ export default function Calendar({ navigate, topics, setTopics, saveTopic, delet
               <input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} placeholder="대주제 이름" autoFocus
                 style={{ width: '100%', border: '1.5px solid #eee', borderRadius: 12, padding: '10px 14px', fontSize: 15, outline: 'none', boxSizing: 'border-box' }} />
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
               {[['시작일', 'startDate'], ['종료일', 'endDate']].map(([label, key]) => (
-                <div key={key}>
+                <div key={key} style={{ minWidth: 0 }}>
                   <label style={{ fontSize: 13, color: '#555', display: 'block', marginBottom: 6 }}>{label}</label>
                   <input type="date" value={form[key]} onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}
-                    style={{ width: '100%', border: '1.5px solid #eee', borderRadius: 12, padding: '10px 14px', fontSize: 15, outline: 'none', boxSizing: 'border-box' }} />
+                    style={{ width: '100%', border: '1.5px solid #eee', borderRadius: 12, padding: '10px 8px', fontSize: 12, outline: 'none', boxSizing: 'border-box' }} />
                 </div>
               ))}
             </div>
