@@ -16,6 +16,7 @@ import DiaryDetail from './components/screens/DiaryDetail'
 import DiaryEditor from './components/screens/DiaryEditor'
 import TodayPicker from './components/screens/TodayPicker'
 import { todayStr } from './constants'
+import LoadingScreen from './components/LoadingScreen'
 
 export default function App() {
   const [session, setSession] = useState(undefined)
@@ -204,19 +205,12 @@ export default function App() {
     }
   }
 
-  if (session === undefined) {
-    return (
-      <div style={{ minHeight: '100dvh', backgroundColor: '#F5F2F3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ fontSize: 24, fontWeight: 800, color: '#ddd' }}>Oh-neuldo</div>
-      </div>
-    )
-  }
+  if (session === undefined || syncing) return <LoadingScreen />
 
   if (!session) return <Auth />
 
   return (
     <div style={{ backgroundColor: '#F5F2F3', minHeight: '100dvh' }}>
-      {syncing && <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 2, backgroundColor: '#111', zIndex: 999, opacity: 0.3 }} />}
       <div style={{ maxWidth: 390, margin: '0 auto', position: 'relative', minHeight: '100dvh' }}>
         <div style={{ paddingBottom: 64 }}>{renderTab()}</div>
         <TabBar activeTab={activeTab} setActiveTab={(tab) => { setActiveTab(tab); setScreenStack([]) }} />
