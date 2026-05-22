@@ -6,7 +6,7 @@ import { supabase } from '../../lib/supabase'
 export default function Home({
   navigate,
   resolutions, activeResolutionId,
-  topics, setTopics,
+  topics, setTopics, saveTopic,
   todayPicks,
   profile,
   appSettings,
@@ -109,11 +109,16 @@ export default function Home({
   const doneCount = todayTopics.reduce((sum, { subtasks }) => sum + subtasks.filter(s => s.isDone).length, 0)
 
   const toggleSubtask = (topicId, subtaskId) => {
-    setTopics(prev => prev.map(t =>
-      t.id === topicId
-        ? { ...t, subtasks: t.subtasks.map(s => s.id === subtaskId ? { ...s, isDone: !s.isDone } : s) }
-        : t
-    ))
+    setTopics(prev => {
+      const next = prev.map(t =>
+        t.id === topicId
+          ? { ...t, subtasks: t.subtasks.map(s => s.id === subtaskId ? { ...s, isDone: !s.isDone } : s) }
+          : t
+      )
+      const updated = next.find(t => t.id === topicId)
+      if (updated) saveTopic(updated, false)
+      return next
+    })
   }
 
   return (
