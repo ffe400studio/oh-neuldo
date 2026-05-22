@@ -116,6 +116,19 @@ export default function Calendar({ navigate, topics, setTopics, saveTopic, delet
   const today = todayStr()
   const weeks = useMemo(() => getMonthWeeks(year, month), [year, month])
 
+  const todayProgress = useMemo(() => {
+    const pickedIds = todayPicks[today] || []
+    let total = 0, done = 0
+    topics.forEach(t => {
+      const subs = t.scheduleType === 'always'
+        ? t.subtasks
+        : t.subtasks.filter(s => pickedIds.includes(s.id))
+      total += subs.length
+      done += subs.filter(s => s.isDone).length
+    })
+    return { total, done }
+  }, [topics, todayPicks, today])
+
   const prevMonth = () => month === 0 ? (setYear(y => y - 1), setMonth(11)) : setMonth(m => m - 1)
   const nextMonth = () => month === 11 ? (setYear(y => y + 1), setMonth(0)) : setMonth(m => m + 1)
 
@@ -325,15 +338,24 @@ export default function Calendar({ navigate, topics, setTopics, saveTopic, delet
                           : '#111',
                         fontSize: 13, fontWeight: day.ds === today ? 700 : 400,
                       }}>{day.date.getDate()}</span>
-                      <div style={{ display: 'flex', justifyContent: 'center', gap: 2, marginTop: 2, minHeight: 6 }}>
-                        {isHoliday && <div style={{ width: 4, height: 4, borderRadius: '50%', backgroundColor: '#FF4444', flexShrink: 0 }} />}
-                        {dayEvents.slice(0, isHoliday ? 2 : 3).map(e => (
-                          <div key={e.id} style={{ width: 4, height: 4, borderRadius: '50%', backgroundColor: e.color, flexShrink: 0 }} />
-                        ))}
-                        {dayEvents.length > (isHoliday ? 2 : 3) && (
-                          <span style={{ fontSize: 8, color: '#aaa', lineHeight: '4px' }}>+{dayEvents.length - (isHoliday ? 2 : 3)}</span>
-                        )}
-                      </div>
+                      {day.ds === today && todayProgress.total > 0 ? (
+                        <div style={{ marginTop: 3, padding: '0 4px' }}>
+                          <div style={{ height: 3, backgroundColor: '#e0e0e0', borderRadius: 2, overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${(todayProgress.done / todayProgress.total) * 100}%`, backgroundColor: todayProgress.done === todayProgress.total ? '#3DE87A' : '#111', borderRadius: 2, transition: 'width 0.3s' }} />
+                          </div>
+                          <div style={{ fontSize: 9, color: '#aaa', textAlign: 'center', marginTop: 1 }}>{todayProgress.done}/{todayProgress.total}</div>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', justifyContent: 'center', gap: 2, marginTop: 2, minHeight: 6 }}>
+                          {isHoliday && <div style={{ width: 4, height: 4, borderRadius: '50%', backgroundColor: '#FF4444', flexShrink: 0 }} />}
+                          {dayEvents.slice(0, isHoliday ? 2 : 3).map(e => (
+                            <div key={e.id} style={{ width: 4, height: 4, borderRadius: '50%', backgroundColor: e.color, flexShrink: 0 }} />
+                          ))}
+                          {dayEvents.length > (isHoliday ? 2 : 3) && (
+                            <span style={{ fontSize: 8, color: '#aaa', lineHeight: '4px' }}>+{dayEvents.length - (isHoliday ? 2 : 3)}</span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )
                 })}
