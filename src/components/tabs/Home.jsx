@@ -93,12 +93,14 @@ export default function Home({
   const todayTopics = useMemo(() => {
     return topics
       .filter(t => {
-        if (t.scheduleType === 'always') return true
+        if (t.scheduleType === 'always') return t.subtasks.length > 0
         return t.startDate <= today && t.endDate >= today
       })
       .map(t => ({
         topic: t,
-        subtasks: t.subtasks.filter(s => pickedIds.includes(s.id)),
+        subtasks: t.scheduleType === 'always'
+          ? t.subtasks
+          : t.subtasks.filter(s => pickedIds.includes(s.id)),
       }))
       .filter(({ subtasks }) => subtasks.length > 0)
   }, [topics, today, pickedIds])
