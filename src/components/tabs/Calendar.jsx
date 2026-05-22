@@ -358,12 +358,12 @@ export default function Calendar({ navigate, topics, setTopics, saveTopic, delet
               <input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} placeholder="대주제 이름" autoFocus
                 style={{ width: '100%', border: '1.5px solid #eee', borderRadius: 12, padding: '10px 14px', fontSize: 15, outline: 'none', boxSizing: 'border-box' }} />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
               {[['시작일', 'startDate'], ['종료일', 'endDate']].map(([label, key]) => (
                 <div key={key}>
                   <label style={{ fontSize: 13, color: '#555', display: 'block', marginBottom: 6 }}>{label}</label>
                   <input type="date" value={form[key]} onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}
-                    style={{ width: '100%', border: '1.5px solid #eee', borderRadius: 12, padding: '10px 10px', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
+                    style={{ width: '100%', border: '1.5px solid #eee', borderRadius: 12, padding: '10px 14px', fontSize: 15, outline: 'none', boxSizing: 'border-box' }} />
                 </div>
               ))}
             </div>
