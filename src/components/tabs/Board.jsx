@@ -1,13 +1,18 @@
 import { useState } from 'react'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, Search } from 'lucide-react'
 import { CARD, todayStr } from '../../constants'
 
 export default function Board({ navigate, topics, posts }) {
   const [showPast, setShowPast] = useState(false)
+  const [query, setQuery] = useState('')
   const today = todayStr()
 
   const activeTopics = topics.filter(t => t.scheduleType === 'always' || !t.endDate || t.endDate >= today)
   const pastTopics = topics.filter(t => t.scheduleType === 'fixed' && t.endDate && t.endDate < today)
+
+  const q = query.trim()
+  const filteredActive = q ? activeTopics.filter(t => t.title.includes(q)) : activeTopics
+  const filteredPast = q ? pastTopics.filter(t => t.title.includes(q)) : pastTopics
 
   const renderTopicCard = (t, faded = false) => {
     const count = posts.filter(p => p.topicId === t.id).length
@@ -37,7 +42,20 @@ export default function Board({ navigate, topics, posts }) {
 
   return (
     <div style={{ padding: '20px 16px' }}>
-      <div style={{ fontWeight: 700, fontSize: 20, marginBottom: 20 }}>게시판</div>
+      <div style={{ fontWeight: 700, fontSize: 20, marginBottom: 14 }}>게시판</div>
+
+      {/* 검색 */}
+      {topics.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, backgroundColor: '#fff', borderRadius: 14, padding: '10px 14px', marginBottom: 14, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+          <Search size={16} color="#bbb" />
+          <input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="대주제 검색..."
+            style={{ flex: 1, border: 'none', outline: 'none', fontSize: 14, color: '#111', backgroundColor: 'transparent' }}
+          />
+        </div>
+      )}
 
       {topics.length === 0 ? (
         <div style={{ ...CARD, padding: '40px 20px', textAlign: 'center' }}>
@@ -46,20 +64,23 @@ export default function Board({ navigate, topics, posts }) {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {activeTopics.map(t => renderTopicCard(t, false))}
+          {filteredActive.length === 0 && filteredPast.length === 0 && (
+            <p style={{ textAlign: 'center', color: '#bbb', fontSize: 14, padding: '24px 0' }}>검색 결과가 없어요</p>
+          )}
+          {filteredActive.map(t => renderTopicCard(t, false))}
 
-          {pastTopics.length > 0 && (
+          {filteredPast.length > 0 && (
             <div style={{ marginTop: 4 }}>
               <button
                 onClick={() => setShowPast(p => !p)}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px 2px', display: 'flex', alignItems: 'center', gap: 4 }}
               >
-                <span style={{ fontSize: 12, color: '#bbb' }}>지난 주제 ({pastTopics.length})</span>
+                <span style={{ fontSize: 12, color: '#bbb' }}>지난 주제 ({filteredPast.length})</span>
                 <ChevronDown size={13} color="#bbb" style={{ transform: showPast ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
               </button>
               {showPast && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {pastTopics.map(t => renderTopicCard(t, true))}
+                  {filteredPast.map(t => renderTopicCard(t, true))}
                 </div>
               )}
             </div>

@@ -297,7 +297,15 @@ export default function Calendar({ navigate, topics, setTopics, saveTopic, delet
       <div style={{ padding: '20px 16px 0' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <button onClick={prevMonth} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}><ChevronLeft size={22} color="#111" /></button>
-          <span style={{ fontWeight: 700, fontSize: 17 }}>{year}년 {month + 1}월</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontWeight: 700, fontSize: 17 }}>{year}년 {month + 1}월</span>
+            {(year !== now.getFullYear() || month !== now.getMonth()) && (
+              <button
+                onClick={() => { setYear(now.getFullYear()); setMonth(now.getMonth()) }}
+                style={{ fontSize: 12, color: '#888', background: '#eee', border: 'none', borderRadius: 8, padding: '3px 8px', cursor: 'pointer' }}
+              >오늘</button>
+            )}
+          </div>
           <button onClick={nextMonth} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}><ChevronRight size={22} color="#111" /></button>
         </div>
 

@@ -5,7 +5,7 @@ import { supabase } from '../../lib/supabase'
 
 export default function Home({
   navigate,
-  resolutions, activeResolutionId,
+  resolutions, activeResolutionId, setActiveResolutionId,
   topics, setTopics, saveTopic,
   todayPicks,
   profile,
@@ -82,11 +82,29 @@ export default function Home({
     await savePhotos(photos.filter((_, i) => i !== idx))
   }
 
-  // ── 오늘의 할일 ──────────────────────────────────────────
-  const activeResolution = useMemo(() => {
-    if (!resolutions.length) return null
-    return resolutions.find(r => r.id === activeResolutionId) || resolutions[0]
+  // ── 결심 스와이프 ─────────────────────────────────────────
+  const resIdx = useMemo(() => {
+    const i = resolutions.findIndex(r => r.id === activeResolutionId)
+    return i >= 0 ? i : 0
   }, [resolutions, activeResolutionId])
+
+  const activeResolution = resolutions[resIdx] || null
+  const resTouchStart = useRef(null)
+
+  const handleResTouchStart = (e) => { resTouchStart.current = e.touches[0].clientX }
+  const handleResTouchEnd = (e) => {
+    if (resTouchStart.current === null) return
+    const diff = e.changedTouches[0].clientX - resTouchStart.current
+    if (Math.abs(diff) > 50) {
+      const nextIdx = diff < 0
+        ? Math.min(resIdx + 1, resolutions.length - 1)
+        : Math.max(resIdx - 1, 0)
+      if (nextIdx !== resIdx) setActiveResolutionId(resolutions[nextIdx].id)
+    }
+    resTouchStart.current = null
+  }
+
+  // ── 오늘의 할일 ──────────────────────────────────────────
 
   const pickedIds = todayPicks[today] || []
 
@@ -202,6 +220,8 @@ export default function Home({
       {showResolution && (
         <div
           onClick={() => navigate('ResolutionManager')}
+          onTouchStart={resolutions.length > 1 ? handleResTouchStart : undefined}
+          onTouchEnd={resolutions.length > 1 ? handleResTouchEnd : undefined}
           style={{
             backgroundColor: '#111111',
             borderRadius: 20,
@@ -235,6 +255,13 @@ export default function Home({
           <span style={{ fontSize: 12, color: '#aaa' }}>{totalCount}개 중 {doneCount}개 완료</span>
         )}
       </div>
+
+      {totalCount > 0 && doneCount === totalCount && (
+        <div style={{ backgroundColor: '#111', borderRadius: 20, padding: '20px 20px', marginBottom: 14, textAlign: 'center' }}>
+          <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', marginBottom: 4 }}>오늘 할일 완료!</div>
+          <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>수고했어요. 내일도 화이팅 ✦</div>
+        </div>
+      )}
 
       {pickedIds.length === 0 ? (
         <div style={{ ...CARD, padding: '36px 20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
