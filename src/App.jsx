@@ -89,6 +89,11 @@ export default function App() {
     const today = todayStr()
     const lv = settings?.last_visit_date || ''
     if (lv !== today) {
+      if (top && top.length > 0) {
+        const resetTopics = top.map(t => ({ ...t, subtasks: (t.subtasks || []).map(s => ({ ...s, isDone: false })) }))
+        setTopicsState(resetTopics.map(t => ({ ...t, colorLight: t.color_light, startDate: t.start_date, endDate: t.end_date, scheduleType: t.schedule_type || 'fixed' })))
+        await Promise.all(resetTopics.map(t => supabase.from('topics').update({ subtasks: t.subtasks }).eq('id', t.id)))
+      }
       await upsertSettings({ last_visit_date: today })
       setLastVisitDateState(today)
       setScreenStack([{ name: 'TodayPicker', params: {} }])
