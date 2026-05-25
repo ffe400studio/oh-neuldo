@@ -1,10 +1,10 @@
 import { useMemo, useState, useEffect, useRef } from 'react'
 import { ChevronRight, Camera, Plus, X, Pencil } from 'lucide-react'
-import { todayStr, formatDate, CARD } from '../../constants'
+import { todayStr, formatDate, CARD, HOLIDAYS } from '../../constants'
 import { supabase } from '../../lib/supabase'
 
 export default function Home({
-  navigate,
+  navigate, switchTab,
   resolutions, activeResolutionId, setActiveResolutionId,
   topics, setTopics, saveTopic,
   todayPicks,
@@ -81,6 +81,20 @@ export default function Home({
     if (path) await supabase.storage.from('photos').remove([path])
     await savePhotos(photos.filter((_, i) => i !== idx))
   }
+
+  // ── 오늘의 특별한 날 ──────────────────────────────────────
+  const todayEvents = useMemo(() => {
+    try {
+      const events = JSON.parse(localStorage.getItem('events') || '[]')
+      return events.filter(e => e.date === today)
+    } catch { return [] }
+  }, [today])
+
+  const todayHoliday = HOLIDAYS[today] || null
+  const specialItems = [
+    ...(todayHoliday ? [{ label: todayHoliday, color: '#FF4444' }] : []),
+    ...todayEvents.map(e => ({ label: e.title, color: e.color })),
+  ]
 
   // ── 결심 스와이프 ─────────────────────────────────────────
   const resIdx = useMemo(() => {
@@ -161,6 +175,31 @@ export default function Home({
         </div>
         <span style={{ fontSize: 12, color: '#aaa' }}>{formatDate(today)}</span>
       </div>
+
+      {/* 오늘의 특별한 날 배너 */}
+      {specialItems.length > 0 && (
+        <div
+          onClick={() => switchTab('calendar')}
+          style={{ display: 'flex', alignItems: 'center', gap: 10, backgroundColor: '#fff', borderRadius: 14, padding: '12px 16px', marginBottom: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.07)', cursor: 'pointer', userSelect: 'none' }}
+        >
+          <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
+            {specialItems.slice(0, 3).map((item, i) => (
+              <div key={i} style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: item.color }} />
+            ))}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>
+              {specialItems[0].label}
+            </span>
+            {specialItems.length > 1 && (
+              <span style={{ fontSize: 13, color: '#aaa', marginLeft: 6 }}>
+                외 {specialItems.length - 1}개
+              </span>
+            )}
+          </div>
+          <span style={{ fontSize: 12, color: '#bbb', flexShrink: 0 }}>달력 보기 ›</span>
+        </div>
+      )}
 
       {/* 사진 슬라이드쇼 */}
       {showPhoto && (

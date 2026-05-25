@@ -171,8 +171,10 @@ export default function App() {
   }
   const deleteDiary = async (id) => { await supabase.from('diaries').delete().eq('id', id) }
 
+  const switchTab = (tab) => { setActiveTab(tab); setScreenStack([]) }
+
   const shared = {
-    navigate, goBack,
+    navigate, goBack, switchTab,
     resolutions, setResolutions, saveResolution, deleteResolution,
     activeResolutionId, setActiveResolutionId,
     topics, setTopics, saveTopic, deleteTopic,
