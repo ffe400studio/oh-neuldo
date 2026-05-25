@@ -447,6 +447,41 @@ export default function Calendar({ navigate, topics, setTopics, saveTopic, delet
         })()}
       </div>
 
+      {/* ── 특별한 날 섹션 ── */}
+      <div style={{ margin: '20px 0 0', borderTop: '1px solid #e8e8e8' }} />
+      <div style={{ padding: '16px 16px 80px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <span style={{ fontWeight: 700, fontSize: 16 }}>특별한 날</span>
+          <button
+            onClick={() => { setEventForm({ title: '', date: todayStr(), colorIdx: 0 }); setEventModal({ mode: 'add' }) }}
+            style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: '1.5px solid #eee', borderRadius: 10, padding: '5px 10px', cursor: 'pointer', fontSize: 13, color: '#888' }}
+          ><Plus size={13} /> 추가</button>
+        </div>
+        {events.length === 0 ? (
+          <p style={{ textAlign: 'center', color: '#aaa', fontSize: 14, padding: '20px 0' }}>등록된 특별한 날이 없어요 ✦</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {[...events].sort((a, b) => a.date.localeCompare(b.date)).map(e => (
+              <div key={e.id} style={{ backgroundColor: '#fff', borderRadius: 14, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                <div style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: e.color, flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: 14, color: '#111', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.title}</div>
+                  <div style={{ fontSize: 12, color: '#aaa', marginTop: 2 }}>{e.date}</div>
+                </div>
+                <button
+                  onClick={() => { const colorIdx = EVENT_COLORS.indexOf(e.color); setEventForm({ title: e.title, date: e.date, colorIdx: colorIdx >= 0 ? colorIdx : 0 }); setEventModal({ mode: 'edit', id: e.id }) }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
+                ><Edit2 size={14} color="#bbb" /></button>
+                <button
+                  onClick={() => { if (window.confirm(`"${e.title}" 을 삭제할까요?`)) setEvents(prev => prev.filter(ev => ev.id !== e.id)) }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
+                ><Trash2 size={14} color="#bbb" /></button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* ── 공휴일/개인 일정 바텀시트 ── */}
       {selected && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 60 }}>
@@ -461,7 +496,7 @@ export default function Calendar({ navigate, topics, setTopics, saveTopic, delet
             )}
             {events.filter(e => e.date === selected).length > 0 && (
               <div style={{ marginTop: HOLIDAYS[selected] ? 0 : 12 }}>
-                <div style={{ fontSize: 12, color: '#aaa', fontWeight: 600, marginBottom: 8 }}>개인 일정</div>
+                <div style={{ fontSize: 12, color: '#aaa', fontWeight: 600, marginBottom: 8 }}>특별한 날</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {events.filter(e => e.date === selected).map(e => (
                     <div
